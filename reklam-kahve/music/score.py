@@ -8,9 +8,9 @@ sys.path.insert(0, '/root/lemo-opuscar')
 from core.audio import sampler as S
 from core.audio.sfx import SR, add, limit
 S.seed(3)
-BEAT = .5; BAR = 2.0; DUR = 24.5; N = int(DUR * SR)
-R1, R2, TAP, R3, R4, GOAL, SMOKE, R5 = 3.0, 6.0, 6.5, 8.5, 12.0, 16.6, 17.6, 20.5
-ITEMS = [8.5, 9.5, 10.5]
+BEAT = .5; BAR = 2.0; DUR = 25.0; N = int(DUR * SR)
+STOP, BOARD, HEAD, DEC, TAP, R4, GOAL, SMOKE, R5 = 1.7, 3.0, 5.0, 10.0, 10.4, 12.5, 17.1, 18.1, 21.0
+MATH = [5.5, 6.5, 7.5]; KULAK = 8.6
 music = np.zeros((N, 2), np.float32); fx = np.zeros((N, 2), np.float32)
 tt = lambda d: np.arange(int(d * SR)) / SR
 sos = lambda kind, f, o=2: butter(o, f, kind, fs=SR, output='sos')
@@ -63,13 +63,16 @@ def jingle(t):
     add(music, S.hit('crash', None, .55), t + .5, .38, .1)
 
 # ===== düzenleme =====
-groove(0, 1, drums=False)                     # kanca: yalnız bas + marimba (gerilim)
-groove(1, 3)                                  # 1–2. tur
-groove(3, 4, transpose=2)
-groove(4, 6, transpose=2)                     # 3. tur
-groove(6, 10)                                 # uygulama
-groove(10, 12, transpose=2)                   # final
-for t in (R1, R2, R3, R4, R5): jingle(t - .5)
+groove(0, 1, drums=False)                          # sokak: yürüyüş (bas + marimba)
+for i in range(4): hat(i * BEAT * .5 + 0.0, .25); 
+for i in range(int(STOP / (BEAT / 2))): hat(i * BEAT / 2, .22)
+brass(BOARD, ['C4', 'Eb4', 'Gb4'], .5, .6); add(music, S.hit('crash', None, .5), BOARD, .35, 0)   # fiyatı görür: gerilim akoru
+groove(2, 5, transpose=2)                          # kafadan hesap: hızlanan groove
+for t0 in MATH: jingle(t0 - .5) if False else None
+groove(5, 6)                                       # karar
+groove(6, 10)                                      # uygulama
+groove(10, 12, transpose=2)                        # final
+for t in (DEC, R4, R5): jingle(t - .5)
 
 # ===== olay efektleri =====
 def pop(t, pitch='C6', v=.45): sample(fx, 'glockenspiel', pitch, .2, v, t, .5, .2)
@@ -80,25 +83,28 @@ def chaching(t):
 def boing(t, v=.4):
     x = tt(.5); f = 260 * (1 + .9 * np.exp(-x * 9)) * (1 + .1 * np.sin(2 * np.pi * 16 * x) * np.exp(-x * 3))
     y = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-x * 5) * v; add(fx, y.astype(np.float32), t, .7, -.1)
-def buzzer(t):
-    x = tt(.45); y = np.sign(np.sin(2 * np.pi * 110 * x)) * .25 * np.exp(-x * 2); y = sosfilt(sos('low', 1800), y); add(fx, y.astype(np.float32), t, .5, 0)
-def click(t): y = sosfilt(sos('band', [1500, 6000]), rng.standard_normal(int(.03 * SR))) * np.exp(-tt(.03) * 120) * .8; add(fx, y.astype(np.float32), t, .7, 0)
+def click(t, v=.8): y = sosfilt(sos('band', [1500, 6000]), rng.standard_normal(int(.03 * SR))) * np.exp(-tt(.03) * 120) * v; add(fx, y.astype(np.float32), t, .7, 0)
+def beep(t, f=1800, d=.07): x = tt(d); y = np.sign(np.sin(2 * np.pi * f * x)) * .12 * np.minimum(1, (d - x) / .01); y = sosfilt(sos('low', 5000), y); add(fx, y.astype(np.float32), t, .5, .15)
 def whoosh(t):
     d = .35; y = sosfilt(sos('band', [400, 3000]), rng.standard_normal(int(d * SR))) * np.sin(np.linspace(0, np.pi, int(d * SR))) * .25; add(fx, y.astype(np.float32), t - d * .6, .6, 0)
 
-for i in range(8): pop(.05 + i * .045, ['C6', 'D6', 'E6', 'G6'][i % 4], .35)            # BU KAHVE harfleri
-for i in range(16): pop(.35 + i * .045, ['E6', 'G6', 'A6', 'C7'][i % 4], .3)
-for t in (R1, R1 + .5, R1 + 1.5): ding(t)                                                   # etiket dönüşleri
-buzzer(R1 + 2.0); boing(R1 + 2.0, .45)                                                      # ŞOK!
-click(TAP); chaching(TAP + .95)                                                             # VAZGEÇTİM + para kumbarada
-pop(TAP + 1.0, 'C7', .5)
-for i, ti in enumerate(ITEMS): boing(ti + .3, .35); chaching(ti + .75)                     # düşen nesneler → para
-for t in (R1, R2, R3, R4, R5): whoosh(t)
-click(14.0); chaching(14.1)                                                                 # ekranda Vazgeçtim'e dokunuş
-for t in (GOAL, SMOKE): whoosh(t)
-for i in range(8): pop(R5 + .1 + i * .05, ['C6', 'E6', 'G6', 'C7'][i % 4], .3)            # VAZGEÇME
-for i in range(8): pop(R5 + .4 + i * .05, ['D6', 'F6', 'A6', 'D7'][i % 4], .3)            # KUMBARAM
-fin = 23.75
+for i in range(int(STOP / .3)): click(.1 + i * .3, .25)                                     # ayak sesleri
+pop(.45, 'E6', .4)                                                                           # düşünce balonu
+for i in range(8): pop(.1 + i * .045, ['C6', 'D6', 'E6', 'G6'][i % 4], .28)
+whoosh(BOARD); boing(BOARD + .42, .4)                                                        # "120 TL mi?!"
+whoosh(HEAD)
+for i in range(18): click(HEAD + .1 + i * .05, .35)                                          # KAFADAN HESAP harfleri
+for j, t0 in enumerate(MATH):                                                                # hesap makinesi bipleri + ding
+    for k in range(4): beep(t0 - .3 + k * .07, 1600 + 300 * k)
+    ding(t0)
+add(fx, S.hit('crash', None, .55), MATH[2], .35, 0)
+for i in range(5): pop(KULAK + .1 + i * .12, ['C6', 'E6', 'G6', 'C7', 'E7'][i], .45)        # kulaklıklar
+whoosh(DEC); click(TAP); chaching(TAP + .95); pop(TAP + 1.0, 'C7', .5)
+for t in (R4, GOAL, SMOKE, R5): whoosh(t)
+click(R4 + .25); chaching(R4 + 2.9)                                                          # kayıttaki dokunuş ve kumbaraya atma
+for i in range(8): pop(R5 + .1 + i * .05, ['C6', 'E6', 'G6', 'C7'][i % 4], .3)
+for i in range(8): pop(R5 + .4 + i * .05, ['D6', 'F6', 'A6', 'D7'][i % 4], .3)
+fin = 24.0
 brass(fin, ['D5', 'F#5', 'A5', 'D6'], .9, .7); add(music, S.hit('crash', None, .6), fin, .4, 0)
 
 # ===== denge =====

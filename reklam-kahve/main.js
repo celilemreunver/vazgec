@@ -66,10 +66,11 @@ function guy(x, y, s, t, o = {}) {
   const hop = o.hop ?? R.abs(R.sin(beatPhase(t) * R.PI)) * 18, sq = o.sq ?? 1;
   g.save(); g.translate(x, y - hop * s); g.scale(s / R.sqrt(sq), s * sq);
   // ayaklar
-  shp(el(-38, -6, 34, 18), INK, { lw: 0, sh: 0 }); shp(el(38, -6, 34, 18), INK, { lw: 0, sh: 0 });
+  const wk = o.walk != null ? R.sin(o.walk * TAU) : 0;
+  shp(el(-38 + wk * 34, -6 - R.max(0, wk) * 22, 34, 18), INK, { lw: 0, sh: 0 }); shp(el(38 - wk * 34, -6 - R.max(0, -wk) * 22, 34, 18), INK, { lw: 0, sh: 0 });
   // kollar (arkada)
   const arm = (side, a) => { g.save(); g.translate(side * 92, -170); g.rotate(a * side); shp(rr(-20, -10, 40, 110, 20), K.sky, { lw: 7, sh: 0 }); shp(el(0, 106, 26, 24), WHITE, { lw: 7, sh: 0 }); g.restore(); };
-  const A = { down: [.25, .25], up: [-2.6, -2.6], tap: [.25, -1.4], hold: [.25, -.9], shock: [-2.2, -2.9] }[o.arms || 'down'];
+  const A = { walk: [.25 + (o.walk != null ? R.sin(o.walk * TAU) * .5 : 0), .25 - (o.walk != null ? R.sin(o.walk * TAU) * .5 : 0)], think: [.25, -2.4], phone: [.25, -1.1], down: [.25, .25], up: [-2.6, -2.6], tap: [.25, -1.4], hold: [.25, -.9], shock: [-2.2, -2.9] }[o.arms || 'down'];
   arm(-1, A[0]);
   // gövde
   shp(() => { g.beginPath(); g.ellipse(0, -170, 112, 165, 0, 0, TAU); }, K.sky, { sh: 12 });
@@ -164,39 +165,93 @@ function plate(text, t, t0) {
 function punch(t) { let z = 1; for (let b = 0; b < ST.DUR / BEAT; b++) { const d = t - b * BEAT; if (d >= 0 && d < .16) z = 1 + .018 * (1 - d / .16) * (b % 4 === 0 ? 1.6 : 1); } return z; }
 
 // ——— sahneler ———
-function sceneHook(t) {
-  setSun(K.yellow, K.yellowL, t);
-  floorBand(K.yellow);
-  guy(330, 1385, 1.05, t, { arms: 'hold', mouth: t > .6 && t < 2.6 ? (R.floor(t * 8) % 2 ? 'open' : 'smile') : 'smile' });
-  coffee(560, 1220, 1.1, t);
-  priceTag(780, 820, 1, '120 TL', -.12 + R.sin(t * 4) * .06);
-  telop('BU KAHVE', 540, 270, 130, { pop: true, t, t0: .05 });
-  telop('KAÇA MAL OLUYOR?', 540, 410, 100, { fill: K.yellow, pop: true, t, t0: .35 });
+function cafe(x, t) {   // kafe vitrini (dünya x)
+  shp(rr(x - 300, 540, 600, 840, 0), K.orangeL, { lw: 8, sh: 0 });
+  for (let i = 0; i < 6; i++) shp(() => { g.beginPath(); g.moveTo(x - 320 + i * 107, 720); g.lineTo(x - 320 + (i + 1) * 107, 720); g.lineTo(x - 320 + (i + .5) * 107, 800); g.closePath(); }, i % 2 ? WHITE : K.pink, { lw: 6, sh: 0 });
+  shp(rr(x - 320, 660, 640, 70, 10), K.pink, { lw: 7, sh: 0 });
+  shp(rr(x - 230, 560, 460, 90, 24), INK, { lw: 0, sh: 8 }); telop('KAHVE', x, 606, 70, { fill: K.yellow });
+  shp(rr(x - 250, 850, 300, 280, 14), K.skyL, { lw: 8, sh: 0 });
+  coffee(x - 100, 1095, .7, t);
+  shp(rr(x + 90, 850, 170, 530, 14), shade(K.orange, -.25), { lw: 8, sh: 0 }); shp(el(x + 230, 1060, 12, 12), K.yellow, { lw: 5, sh: 0 });
+  // kapı önünde küçük menü panosu (fiyat buradan okunur)
+  shp(rr(x - 210, 1150, 200, 230, 12), INK, { lw: 0, sh: 8 }); telop('LATTE', x - 110, 1215, 40, { fill: CREAM }); telop('120 TL', x - 110, 1290, 48, { fill: K.yellow });
 }
-function sceneMath(t) {
-  setStripes(K.orange, K.orangeL, t);
-  sticker('1. TUR: KAHVE', t, ST.R1, K.red);
-  const d = t - ST.R1;
-  const shocked = d > 1.5;
-  guy(250, 1385, 1.0, t, { arms: shocked ? 'shock' : 'hold', eyes: shocked ? 'wide' : 'open', mouth: shocked ? 'open' : 'smile', sq: shocked ? 1 + .06 * R.sin(d * 30) * R.exp(-(d - 1.5) * 6) : 1 });
-  coffee(500, 1270, .8, t);
-  // dönen etiket: 120 TL → × 365 GÜN → 43.800 TL
-  const steps = [[0, '120 TL', K.yellow], [.5, '× 365 GÜN', WHITE], [1.5, '43.800 TL', K.pink]];
-  let cur = steps[0]; for (const s of steps) if (d >= s[0]) cur = s;
-  const flip = clamp((d - cur[0]) / .18);
-  g.save(); g.translate(560, 760); g.scale(1, .2 + .8 * eo(flip)); g.translate(-560, -760);
-  priceTag(590, 760, cur[1] === '43.800 TL' ? 1.35 : 1.1, cur[1], -.06, cur[2]);
+function shop(x, col, name) { shp(rr(x - 280, 520, 560, 860, 0), col, { lw: 8, sh: 0 }); shp(rr(x - 200, 760, 400, 320, 14), K.skyL, { lw: 8, sh: 0 }); shp(rr(x - 210, 600, 420, 90, 20), WHITE, { lw: 7, sh: 0 }); g.font = '800 54px Baloo'; g.fillStyle = INK; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(name, x, 648); }
+function bubble(text, x, y, t, t0, { size = 64, think = true } = {}) {
+  const u = back(clamp((t - t0) / .22), 2.2); if (u <= 0) return;
+  g.save(); g.translate(x, y); g.scale(u, u);
+  const fs = fitSize(text, size, 620); g.font = `800 ${fs}px Baloo`; const tw = g.measureText(text).width;
+  if (think) { shp(el(-tw / 2 + 20, 120, 26, 22), WHITE, { sh: 6 }); shp(el(-tw / 2 - 10, 170, 16, 14), WHITE, { sh: 5 }); }
+  shp(rr(-tw / 2 - 50, -70, tw + 100, 140, 70), WHITE, { sh: 10 });
+  g.fillStyle = INK; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(text, 0, 6);
   g.restore();
-  if (d > 1.5) telop('/ YIL', 760, 930, 90, { pop: true, t, t0: ST.R1 + 1.55, fill: WHITE });
-  judge('ŞOK!', 760, 1120, t, ST.R1 + 2.0, K.yellow, .14);
+}
+function sceneStreet(t) {
+  g.fillStyle = K.sky; g.fillRect(0, 0, W, H);
+  for (const [cx, cy, r] of [[120, 520, 60], [190, 500, 80], [890, 560, 70], [960, 540, 55]]) shp(el(cx, cy, r, r * .7), WHITE, { lw: 0, sh: 0 });
+  const walkU = clamp(t / ST.STOP), camX = lerp(-700, 0, eo(walkU));
+  g.save(); g.translate(-camX, 0);
+  shop(-900, K.yellow, 'BÜFE'); shop(-300, K.lime, 'MANAV');
+  cafe(600, t);
+  g.restore();
+  g.fillStyle = shade(K.sky, -.35); g.fillRect(0, 1380, W, H - 1380); g.fillStyle = INK; g.fillRect(0, 1374, W, 10);
+  for (let x = -((-camX * 1) % 200); x < W; x += 200) { g.fillStyle = shade(K.sky, -.25); g.fillRect(x, 1500, 120, 18); }
+  const walking = t < ST.STOP;
+  guy(250, 1385, 1.0, t, { arms: walking ? 'walk' : 'think', walk: walking ? t * 1.8 : null, hop: walking ? R.abs(R.sin(t * 1.8 * TAU)) * 10 : 0, eyes: 'open', mouth: t > .4 && t < 1.9 ? (R.floor(t * 8) % 2 ? 'o' : 'smile') : 'smile' });
+  bubble('Bir kahve alsam mı?', 560, 780, t, .45);
+  telop('SEN OLSAN', 540, 250, 96, { pop: true, t, t0: .1, fill: WHITE }); telop('ALIR MIYDIN?', 540, 370, 96, { pop: true, t, t0: .3, fill: K.yellow });
+}
+function sceneBoard(t) {
+  const d = t - ST.BOARD;
+  setDots(K.orange, K.orangeL, t);
+  const z = 1 + .04 * R.exp(-d * 6);
+  g.save(); g.translate(560, 640); g.scale(z, z); g.rotate(-.04);
+  shp(rr(-360, -300, 720, 560, 30), INK, { lw: 0, sh: 16 });
+  shp(rr(-340, -280, 680, 520, 22), '#2b2a33', { lw: 6, sh: 0 });
+  telop('MENÜ', 0, -200, 80, { fill: CREAM });
+  g.font = '800 54px Baloo'; g.fillStyle = CREAM; g.textAlign = 'left'; g.textBaseline = 'middle';
+  g.fillText('Çay', -280, -90); g.fillText('Latte', -280, 20); g.fillText('Kurabiye', -280, 130);
+  g.textAlign = 'right'; g.fillText('25 TL', 280, -90); g.fillText('60 TL', 280, 130);
+  const ring = back(clamp((d - .3) / .25), 2.5);
+  g.save(); g.translate(180, 20); g.scale(ring || .01, ring || .01); g.lineWidth = 10; g.strokeStyle = K.yellow; g.beginPath(); g.ellipse(0, 0, 150, 62, -.05, 0, TAU); g.stroke(); g.restore();
+  telop('120 TL', 180, 20, 74, { fill: K.yellow });
+  g.restore();
+  const shocked = d > .4;
+  guy(240, 1385, 1.15, t, { arms: shocked ? 'shock' : 'think', eyes: shocked ? 'wide' : 'open', mouth: shocked ? 'open' : 'smile', hop: 0, sq: shocked ? 1 + .07 * R.sin(d * 30) * R.exp(-(d - .4) * 5) : 1 });
+  bubble('120 TL mi?!', 700, 1080, t, ST.BOARD + .42, { size: 80, think: false });
+}
+function gear(x, y, r, rot, col) { g.save(); g.translate(x, y); g.rotate(rot); shp(() => { g.beginPath(); const n = 10; for (let i = 0; i < n * 2; i++) { const a = i / (n * 2) * TAU, rr_ = i % 2 ? r : r * 1.22; g.lineTo(R.cos(a - .12) * rr_, R.sin(a - .12) * rr_); g.lineTo(R.cos(a + .12) * rr_, R.sin(a + .12) * rr_); } g.closePath(); }, col, { sh: 8 }); shp(el(0, 0, r * .35, r * .35), INK, { lw: 0, sh: 0 }); g.restore(); }
+function headphones(x, y, s) { g.save(); g.translate(x, y); g.scale(s, s); g.lineWidth = 16; g.strokeStyle = INK; g.beginPath(); g.arc(0, 0, 60, R.PI, 0); g.stroke(); g.lineWidth = 9; g.strokeStyle = WHITE; g.beginPath(); g.arc(0, 0, 60, R.PI * 1.02, -R.PI * .02); g.stroke(); shp(rr(-82, -6, 40, 70, 16), K.sky, { lw: 7, sh: 4 }); shp(rr(42, -6, 40, 70, 16), K.sky, { lw: 7, sh: 4 }); g.restore(); }
+function sceneHead(t) {
+  const d = t - ST.HEAD;
+  setStripes(K.navy, K.navyL, t, false);
+  gear(150, 1560, 120, t * 2.4, K.yellow); gear(330, 1700, 75, -t * 3.8, K.pink); gear(930, 1540, 130, -t * 2, K.lime); gear(760, 1690, 80, t * 3.2, K.orange);
+  telop('KAFADAN HESAP', 540, 250, 84, { pop: true, t, t0: ST.HEAD + .1, fill: WHITE });
+  ST.MATH.forEach(([t0, a, b], i) => {
+    const u = back(clamp((t - t0) / .2), 2.4); if (u <= 0) return;
+    const y = 430 + i * 215, big = i === 2;
+    g.save(); g.translate(540, y); g.scale(u, u); g.rotate((i - 1) * .025);
+    shp(rr(-430, -90, 860, 180, 40), big ? K.pink : CREAM, { sh: 12 });
+    g.font = '800 52px Baloo'; g.fillStyle = INK; g.textAlign = 'left'; g.textBaseline = 'middle'; g.fillText(a, -390, 4);
+    telop(b, 140, 2, big ? 104 : 88, { fill: big ? K.yellow : WHITE });
+    g.restore();
+  });
+  // ≈ 5 kulaklık
+  const k = back(clamp((t - ST.KULAK) / .2), 2.2);
+  if (k > 0) {
+    g.save(); g.translate(540, 1080); g.scale(k, k); shp(rr(-460, -95, 920, 190, 46), K.yellow, { sh: 12 }); g.restore();
+    for (let i = 0; i < 5; i++) { const s = back(clamp((t - ST.KULAK - .1 - i * .12) / .16), 2.4); if (s > 0) headphones(-330 + 540 + i * 165, 1075, .8 * s); }
+    telop('≈ 5 KULAKLIK!', 540, 1250, 92, { pop: true, t, t0: ST.KULAK + .7, fill: WHITE });
+  }
+  // kafaya giriş: daire şeklinde açılış
+  if (d < .35) { const r = 40 + eo(d / .35) * 1500; g.save(); g.fillStyle = K.orange; g.beginPath(); g.rect(0, 0, W, H); g.arc(240, 1100, r, 0, TAU, true); g.fill('evenodd'); g.restore(); }
 }
 function sceneTap(t) {
   setDots(K.pink, K.pinkL, t);
-  sticker('2. TUR: VAZGEÇ', t, ST.R2, K.navy);
+  sticker('KARAR ANI', t, ST.R2, K.navy);
   const d = t - ST.TAP;
   guy(260, 1385, 1.0, t, { arms: d > -.1 && d < .5 ? 'tap' : d >= .5 ? 'up' : 'down', eyes: d > .5 ? 'happy' : 'open', mouth: d > -.05 && d < 1 ? 'open' : 'smile', blush: d > .5 });
   // kahve kenara itilir
-  coffee(lerp(520, 1250, ei(seg(t, ST.R2, ST.R2 + .4))), 1290, .75, t);
   // büyük yeşil düğme (uygulamadaki gibi)
   const press = d > 0 && d < .18 ? 12 : 0;
   g.save(); g.translate(540, 760 + press);
@@ -255,8 +310,8 @@ function scenePhone(t) {
   const env = (a, b) => R.max(0, R.min(seg(t, a, a + .2), 1 - seg(t, b - .15, b)));
   const box = (x, y, w, h, a, col = K.yellow) => { if (a <= 0) return; g.globalAlpha = a; g.lineWidth = 9; g.strokeStyle = col; g.beginPath(); g.roundRect(-sw / 2 + x + sl, -sh / 2 + y, w, h, 30); g.stroke(); g.globalAlpha = 1; };
   const ripple = (x, y, t0) => { const u = (t - t0) / .45; if (u < 0 || u > 1) return; g.globalAlpha = .8 * (1 - u); g.fillStyle = WHITE; g.beginPath(); g.arc(-sw / 2 + x, -sh / 2 + y, 30 + u * 110, 0, TAU); g.fill(); g.globalAlpha = 1; };
-  ripple(320, 548, 12.25);                                  // Vazgeçtim!
-  box(18, 70, 604, 170, env(15.55, ST.GOAL));               // +120 TL kumbarada · 4.077 TL
+  ripple(320, 548, ST.R4 + .25);                                  // Vazgeçtim!
+  box(18, 70, 604, 170, env(ST.GOAL - 1.05, ST.GOAL));               // +120 TL kumbarada · 4.077 TL
   if (t >= ST.GOAL && t < ST.SMOKE) box(32, (500 - 150) * k, 576, 420 * k, env(ST.GOAL + .15, ST.SMOKE));
   box(18, 140, 604, 200, env(ST.SMOKE + .25, ST.R5));       // işleyen sigarasız sayaç
   g.restore();
@@ -286,12 +341,12 @@ await document.fonts.load('800 80px Baloo', 'şğİıçöüŞĞÇÖÜ₺');
 await Promise.all([loadImg('hedefler', 'img/hedefler.png'), loadImg('logo', 'img/logo.png')]);
 const ld = (set, i) => new Promise(r => { const im = new Image(); im.onload = () => { REC[set + i] = im; r(); }; im.src = `rec/${set}/${String(i).padStart(4, '0')}.jpg`; });
 const jobs = []; for (let i = 1; i <= 257; i++) jobs.push(ld('a', i)); for (let i = 1; i <= 88; i++) jobs.push(ld('b', i)); await Promise.all(jobs);
-const CUTS = [ST.R1, ST.R2, ST.R3, ST.R4, ST.R5];
+const CUTS = [ST.BOARD, ST.DEC, ST.R4, ST.R5];
 function draw(t) {
   t = Math.min(t, ST.DUR - 1e-4);
   g.setTransform(1, 0, 0, 1, 0, 0);
   const z = punch(t); g.translate(540, 960); g.scale(z, z); g.translate(-540, -960);
-  if (t < ST.R1) sceneHook(t); else if (t < ST.R2) sceneMath(t); else if (t < ST.R3) sceneTap(t); else if (t < ST.R4) sceneRun(t); else if (t < ST.R5) scenePhone(t); else sceneEnd(t);
+  if (t < ST.BOARD) sceneStreet(t); else if (t < ST.HEAD) sceneBoard(t); else if (t < ST.DEC) sceneHead(t); else if (t < ST.R4) sceneTap(t); else if (t < ST.R5) scenePhone(t); else sceneEnd(t);
   g.setTransform(1, 0, 0, 1, 0, 0);
   const s = ST.SUBS.find(s => t >= s[0] && t < s[1]); if (s) plate(s[2], t, s[0]);
   // kesmelerde kısa beyaz flaş
