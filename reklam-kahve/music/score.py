@@ -8,9 +8,9 @@ sys.path.insert(0, '/root/lemo-opuscar')
 from core.audio import sampler as S
 from core.audio.sfx import SR, add, limit
 S.seed(3)
-BEAT = .5; BAR = 2.0; DUR = 25.0; N = int(DUR * SR)
-STOP, BOARD, HEAD, DEC, TAP, R4, GOAL, SMOKE, R5 = 1.7, 3.0, 5.0, 10.0, 10.4, 12.5, 17.1, 18.1, 21.0
-MATH = [5.5, 6.5, 7.5]; KULAK = 8.6
+BEAT = .5; BAR = 2.0; DUR = 22.3; N = int(DUR * SR)
+STOP, BOARD, HEAD, DEC, TAP, R4, GOAL, SMOKE, R5 = 1.7, 3.0, 5.0, 7.3, 7.7, 9.8, 14.4, 15.4, 18.3
+MATH = [5.3, 5.8, 6.3]
 music = np.zeros((N, 2), np.float32); fx = np.zeros((N, 2), np.float32)
 tt = lambda d: np.arange(int(d * SR)) / SR
 sos = lambda kind, f, o=2: butter(o, f, kind, fs=SR, output='sos')
@@ -67,11 +67,9 @@ groove(0, 1, drums=False)                          # sokak: yürüyüş (bas + m
 for i in range(4): hat(i * BEAT * .5 + 0.0, .25); 
 for i in range(int(STOP / (BEAT / 2))): hat(i * BEAT / 2, .22)
 brass(BOARD, ['C4', 'Eb4', 'Gb4'], .5, .6); add(music, S.hit('crash', None, .5), BOARD, .35, 0)   # fiyatı görür: gerilim akoru
-groove(2, 5, transpose=2)                          # kafadan hesap: hızlanan groove
-for t0 in MATH: jingle(t0 - .5) if False else None
-groove(5, 6)                                       # karar
-groove(6, 10)                                      # uygulama
-groove(10, 12, transpose=2)                        # final
+groove(2, 4, transpose=2)                          # kafadan hesap + karar
+groove(4, 9)                                       # uygulama
+groove(9, 12, transpose=2)                         # final
 for t in (DEC, R4, R5): jingle(t - .5)
 
 # ===== olay efektleri =====
@@ -95,16 +93,15 @@ whoosh(BOARD); boing(BOARD + .42, .4)                                           
 whoosh(HEAD)
 for i in range(18): click(HEAD + .1 + i * .05, .35)                                          # KAFADAN HESAP harfleri
 for j, t0 in enumerate(MATH):                                                                # hesap makinesi bipleri + ding
-    for k in range(4): beep(t0 - .3 + k * .07, 1600 + 300 * k)
+    for k in range(3): beep(t0 - .2 + k * .06, 1600 + 300 * k)
     ding(t0)
 add(fx, S.hit('crash', None, .55), MATH[2], .35, 0)
-for i in range(5): pop(KULAK + .1 + i * .12, ['C6', 'E6', 'G6', 'C7', 'E7'][i], .45)        # kulaklıklar
 whoosh(DEC); click(TAP); chaching(TAP + .95); pop(TAP + 1.0, 'C7', .5)
 for t in (R4, GOAL, SMOKE, R5): whoosh(t)
 click(R4 + .25); chaching(R4 + 2.9)                                                          # kayıttaki dokunuş ve kumbaraya atma
 for i in range(8): pop(R5 + .1 + i * .05, ['C6', 'E6', 'G6', 'C7'][i % 4], .3)
 for i in range(8): pop(R5 + .4 + i * .05, ['D6', 'F6', 'A6', 'D7'][i % 4], .3)
-fin = 24.0
+fin = 21.3
 brass(fin, ['D5', 'F#5', 'A5', 'D6'], .9, .7); add(music, S.hit('crash', None, .6), fin, .4, 0)
 
 # ===== denge =====

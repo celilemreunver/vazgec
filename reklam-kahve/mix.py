@@ -5,8 +5,8 @@ from scipy.signal import butter, sosfilt
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, '/root/lemo-opuscar')
 from core.audio.sfx import SR, add, limit
-DUR = 25.0; N = int(DUR * SR)
-VO = [('m1', .4, 'clean'), ('a1', 10.35, 'clean'), ('h2', 12.7, 'clean'), ('h3', 21.3, 'clean')]
+DUR = 22.3; N = int(DUR * SR)
+VO = [('m1', .4, 'clean'), ('a1', 7.65, 'clean'), ('h2', 10.0, 'clean'), ('h3', 18.6, 'clean')]
 sos = lambda kind, f: butter(2, f, kind, fs=SR, output='sos')
 music, _ = sf.read(os.path.join(HERE, 'music/score.wav'), dtype='float32'); music = music[:N]
 voice = np.zeros((N, 2), np.float32); active = np.zeros(N, np.float32)

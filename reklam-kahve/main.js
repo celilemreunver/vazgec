@@ -212,9 +212,11 @@ function sceneBoard(t) {
   g.font = '800 54px Baloo'; g.fillStyle = CREAM; g.textAlign = 'left'; g.textBaseline = 'middle';
   g.fillText('Çay', -280, -90); g.fillText('Latte', -280, 20); g.fillText('Kurabiye', -280, 130);
   g.textAlign = 'right'; g.fillText('25 TL', 280, -90); g.fillText('60 TL', 280, 130);
-  const ring = back(clamp((d - .3) / .25), 2.5);
-  g.save(); g.translate(180, 20); g.scale(ring || .01, ring || .01); g.lineWidth = 10; g.strokeStyle = K.yellow; g.beginPath(); g.ellipse(0, 0, 150, 62, -.05, 0, TAU); g.stroke(); g.restore();
-  telop('120 TL', 180, 20, 74, { fill: K.yellow });
+  const pu = back(clamp((d - .3) / .22), 2.4);
+  g.save(); g.translate(185, 20); g.rotate(-.04); g.scale(.6 + .4 * pu, .6 + .4 * pu);
+  shp(rr(-115, -46, 230, 92, 46), K.yellow, { sh: 8 });
+  g.font = '800 62px Baloo'; g.fillStyle = INK; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('120 TL', 0, 5);
+  g.restore();
   g.restore();
   const shocked = d > .4;
   guy(240, 1385, 1.15, t, { arms: shocked ? 'shock' : 'think', eyes: shocked ? 'wide' : 'open', mouth: shocked ? 'open' : 'smile', hop: 0, sq: shocked ? 1 + .07 * R.sin(d * 30) * R.exp(-(d - .4) * 5) : 1 });
@@ -236,13 +238,6 @@ function sceneHead(t) {
     telop(b, 140, 2, big ? 104 : 88, { fill: big ? K.yellow : WHITE });
     g.restore();
   });
-  // ≈ 5 kulaklık
-  const k = back(clamp((t - ST.KULAK) / .2), 2.2);
-  if (k > 0) {
-    g.save(); g.translate(540, 1080); g.scale(k, k); shp(rr(-460, -95, 920, 190, 46), K.yellow, { sh: 12 }); g.restore();
-    for (let i = 0; i < 5; i++) { const s = back(clamp((t - ST.KULAK - .1 - i * .12) / .16), 2.4); if (s > 0) headphones(-330 + 540 + i * 165, 1075, .8 * s); }
-    telop('≈ 5 KULAKLIK!', 540, 1250, 92, { pop: true, t, t0: ST.KULAK + .7, fill: WHITE });
-  }
   // kafaya giriş: daire şeklinde açılış
   if (d < .35) { const r = 40 + eo(d / .35) * 1500; g.save(); g.fillStyle = K.orange; g.beginPath(); g.rect(0, 0, W, H); g.arc(240, 1100, r, 0, TAU, true); g.fill('evenodd'); g.restore(); }
 }
