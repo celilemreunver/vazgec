@@ -16,8 +16,11 @@ for name, at, kind in VO:
     x = x.astype(np.float32); add(voice, x, at, 1.0, 0.0)
     a = int(at * SR); active[a:a + len(x)] = 1
 k = int(.08 * SR); env = np.convolve(active, np.ones(k) / k, mode='same')
-duck = (1 - env * (1 - 10 ** (-10 / 20))).astype(np.float32)
-mix = music * duck[:, None] * .85 + voice * 1.05
+duck = (1 - env * (1 - 10 ** (-12 / 20))).astype(np.float32)
+# isim anı: 'Vazgeçme Kumbaram' söylenirken müzik neredeyse susar (oyun programı vurgusu)
+nm = np.ones(N, np.float32); a0, a1 = int(18.8 * SR), int(20.3 * SR); f = int(.08 * SR)
+nm[a0:a1] = 10 ** (-26 / 20); nm[a0 - f:a0] = np.linspace(1, nm[a0], f); nm[a1:a1 + f] = np.linspace(nm[a0], 1, f)
+mix = music * (duck * nm)[:, None] * .85 + voice * 1.05
 mix = np.stack([limit(mix[:, 0], .9), limit(mix[:, 1], .9)], 1).astype(np.float32)
 os.makedirs(os.path.join(HERE, 'out'), exist_ok=True)
 sf.write(os.path.join(HERE, 'out/mix.wav'), mix, SR, subtype='PCM_24')

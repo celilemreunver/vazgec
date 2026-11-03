@@ -99,9 +99,9 @@ add(fx, S.hit('crash', None, .55), MATH[2], .35, 0)
 whoosh(DEC); click(TAP); chaching(TAP + .95); pop(TAP + 1.0, 'C7', .5)
 for t in (R4, GOAL, SMOKE, R5): whoosh(t)
 click(R4 + .25); chaching(R4 + 2.9)                                                          # kayıttaki dokunuş ve kumbaraya atma
-for i in range(8): pop(R5 + .1 + i * .05, ['C6', 'E6', 'G6', 'C7'][i % 4], .3)
-for i in range(8): pop(R5 + .4 + i * .05, ['D6', 'F6', 'A6', 'D7'][i % 4], .3)
-fin = 21.3
+for i in range(8): pop(R5 + .1 + i * .05, ['C6', 'E6', 'G6', 'C7'][i % 4], .18)   # VAZGEÇME (konuşmadan önce)
+# KUMBARAM harfleri konuşmanın üstüne denk geldiği için sessiz
+fin = 21.55
 brass(fin, ['D5', 'F#5', 'A5', 'D6'], .9, .7); add(music, S.hit('crash', None, .6), fin, .4, 0)
 
 # ===== denge =====
