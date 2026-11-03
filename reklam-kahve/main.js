@@ -4,7 +4,7 @@ import * as ST from './story.js';
 const W = 1080, H = 1920, R = Math;
 const cv = document.getElementById('c'); const g = cv.getContext('2d');
 const INK = '#17141c', WHITE = '#ffffff', CREAM = '#fff4dc';
-const K = { yellow: '#FFD23F', yellowL: '#FFE27A', orange: '#FF9F43', orangeL: '#FFB870', pink: '#FF6FA8', pinkL: '#FF93BF', lime: '#9BE15D', limeL: '#B8EC86', sky: '#5EC8FF', skyL: '#8AD8FF', navy: '#25306B', navyL: '#33408A', teal: '#14A3A0', tealL: '#2DBAB6', red: '#FF4D4D', green: '#3DDC84', gold: '#FFC93C', pig: '#FF8FB5', pigD: '#F06A9A' };
+const K = { yellow: '#FFD23F', yellowL: '#FFE27A', orange: '#FF9F43', orangeL: '#FFB870', pink: '#FF6FA8', pinkL: '#FF93BF', lime: '#9BE15D', limeL: '#B8EC86', sky: '#5EC8FF', skyL: '#8AD8FF', navy: '#25306B', navyL: '#33408A', teal: '#14A3A0', tealL: '#2DBAB6', red: '#FF4D4D', green: '#3DDC84', gold: '#FFC93C', pig: '#6FD68E', pigD: '#4BAE6B' };
 const BEAT = ST.BEAT;
 const beatPhase = t => (t / BEAT) % 1;
 
@@ -210,7 +210,7 @@ function sceneTap(t) {
   judge('SÜPER!', 560, 520, t, ST.TAP + 1.0, K.pink, -.1);
 }
 function sceneRun(t) {
-  setStripes(K.lime, K.limeL, t);
+  setStripes(K.sky, K.skyL, t);
   sticker('3. TUR: BİRİKTİR', t, ST.R3, K.teal);
   let n = 0; ST.ITEMS.forEach((ti, i) => { if (t >= ti + .45) n = i + 1; });
   const total = n >= 3 ? ST.COUNT[4] : ST.COUNT[n + 1 > 3 ? 4 : n];
@@ -232,51 +232,60 @@ function sceneRun(t) {
 }
 const IMG = {};
 function loadImg(k, src) { return new Promise(r => { const im = new Image(); im.onload = () => { IMG[k] = im; r(); }; im.src = src; }); }
+const REC = {};
+function recImg(set, i, n) { i = clamp(R.round(i), 1, n); return REC[set + i]; }
 function scenePhone(t) {
   setSun(K.navy, K.navyL, t, 540, 960);
   const push = back(seg(t, ST.R4, ST.R4 + .35), 1.5);
-  const key = t < ST.GOAL ? 'kumbara' : t < ST.SMOKE ? 'hedefler' : 'sigarasiz';
-  const im = IMG[key], crop = 150, sw = 640, k = sw / im.width, sh = (im.height - crop) * k * .86;
+  // kaynak: kayıt kareleri (640 genişlik, durum çubuğu kırpılmış) ya da ekran görüntüsü
+  let im, crop = 0, k = 1;
+  if (t < ST.GOAL) im = recImg('a', lerp(1, 257, seg(t, ST.R4, ST.GOAL - .05)), 257);
+  else if (t < ST.SMOKE) { im = IMG.hedefler; crop = 150; k = 640 / im.width; }
+  else im = recImg('b', lerp(1, 88, seg(t, ST.SMOKE, ST.R5)), 88);
+  const sw = 640, sh = 1304 * .86;
   const sc = lerp(.6, 1, push);
   g.save(); g.translate(540, 180 + (sh + 60) / 2 + 20); g.scale(sc, sc);
   shp(rr(-sw / 2 - 30, -sh / 2 - 30, sw + 60, sh + 60, 80), '#1d1d24', { sh: 16 });
   g.save(); g.beginPath(); g.roundRect(-sw / 2, -sh / 2, sw, sh, 56); g.clip();
-  // ekran geçişlerinde hızlı kaydırma
+  g.fillStyle = '#0b100d'; g.fillRect(-sw / 2, -sh / 2, sw, sh);
   const sw0 = (t >= ST.GOAL && t < ST.GOAL + .2) || (t >= ST.SMOKE && t < ST.SMOKE + .2);
   const sl = sw0 ? (1 - eo(((t - (t < ST.SMOKE ? ST.GOAL : ST.SMOKE)) / .2))) * sw : 0;
   g.drawImage(im, 0, crop, im.width, im.height - crop, -sw / 2 + sl, -sh / 2, sw, (im.height - crop) * k);
-  // vurgular (kaynak piksel koordinatları, crop sonrası)
-  const box = (x, y, w, h, a, col = K.yellow) => { if (a <= 0) return; g.globalAlpha = a; g.lineWidth = 9; g.strokeStyle = col; g.beginPath(); g.roundRect(-sw / 2 + x * k + sl, -sh / 2 + (y - crop) * k, w * k, h * k, 30); g.stroke(); g.globalAlpha = 1; };
+  // vurgular (ekran koordinatı: 640 genişlik)
   const env = (a, b) => R.max(0, R.min(seg(t, a, a + .2), 1 - seg(t, b - .15, b)));
-  if (key === 'kumbara') {
-    box(70, 380, 1040, 360, env(12.4, 13.6));            // 3.956 TL
-    box(60, 1060, 1060, 200, env(13.6, 15.2));           // Vazgeçtim!
-    box(60, 1290, 1060, 210, env(15.2, 16.6));           // sigarasız satırı
-    if (t > 14.0 && t < 14.6) { const u = (t - 14.0) / .6; g.globalAlpha = 1 - u; g.fillStyle = WHITE; g.beginPath(); g.arc(-sw / 2 + 590 * k, -sh / 2 + (1160 - crop) * k, 40 + u * 160, 0, TAU); g.fill(); g.globalAlpha = 1; }
-  }
-  if (key === 'hedefler') box(60, 500, 1060, 420, env(ST.GOAL + .15, ST.SMOKE));
-  if (key === 'sigarasiz') { box(60, 340, 1060, 420, env(ST.SMOKE + .2, 19.2)); box(600, 790, 520, 320, env(19.2, ST.R5)); }
+  const box = (x, y, w, h, a, col = K.yellow) => { if (a <= 0) return; g.globalAlpha = a; g.lineWidth = 9; g.strokeStyle = col; g.beginPath(); g.roundRect(-sw / 2 + x + sl, -sh / 2 + y, w, h, 30); g.stroke(); g.globalAlpha = 1; };
+  const ripple = (x, y, t0) => { const u = (t - t0) / .45; if (u < 0 || u > 1) return; g.globalAlpha = .8 * (1 - u); g.fillStyle = WHITE; g.beginPath(); g.arc(-sw / 2 + x, -sh / 2 + y, 30 + u * 110, 0, TAU); g.fill(); g.globalAlpha = 1; };
+  ripple(320, 548, 12.25);                                  // Vazgeçtim!
+  box(18, 70, 604, 170, env(15.55, ST.GOAL));               // +120 TL kumbarada · 4.077 TL
+  if (t >= ST.GOAL && t < ST.SMOKE) box(32, (500 - 150) * k, 576, 420 * k, env(ST.GOAL + .15, ST.SMOKE));
+  box(18, 140, 604, 200, env(ST.SMOKE + .25, ST.R5));       // işleyen sigarasız sayaç
   g.restore();
   g.fillStyle = INK; g.beginPath(); g.roundRect(-70, -sh / 2 + 18, 140, 36, 18); g.fill();
   g.restore();
 }
 function sceneEnd(t) {
-  setSun(K.teal, K.tealL, t, 540, 820);
+  setSun(K.pink, K.pinkL, t, 540, 760);
   const d = t - ST.R5;
-  piggy(540, 1150, back(seg(d, 0, .4), 2) * 1.55, t, { happy: true });
-  coin(300, 520 + R.sin(t * 5) * 20, 1.1, t * 3); coin(800, 460 + R.cos(t * 5) * 20, 1.0, t * 3 + 1);
-  telop('VAZGEÇME', 540, 270, 140, { pop: true, t, t0: ST.R5 + .1, fill: WHITE });
-  telop('KUMBARAM', 540, 420, 140, { pop: true, t, t0: ST.R5 + .4, fill: K.yellow });
+  telop('VAZGEÇME', 540, 250, 140, { pop: true, t, t0: ST.R5 + .1, fill: WHITE });
+  telop('KUMBARAM', 540, 395, 140, { pop: true, t, t0: ST.R5 + .4, fill: K.yellow });
+  const u = back(seg(d, .05, .45), 2);
+  if (u > 0) { g.save(); g.translate(540, 740); g.scale(u, u); g.rotate(R.sin(t * 3) * .03);
+    shp(rr(-200, -200, 400, 400, 92), INK, { lw: 0, sh: 16 }); g.drawImage(IMG.logo, -196, -196, 392, 392);
+    g.lineWidth = 8; g.strokeStyle = INK; g.beginPath(); g.roundRect(-200, -200, 400, 400, 92); g.stroke(); g.restore(); }
+  coin(230, 640 + R.sin(t * 5) * 20, 1.1, t * 3); coin(860, 560 + R.cos(t * 5) * 20, 1.0, t * 3 + 1); coin(880, 900 + R.sin(t * 4 + 1) * 16, .8, t * 3 + 2);
   const a = back(seg(d, .9, 1.2), 2);
-  if (a > 0) { g.save(); g.translate(540, 1255); g.rotate(-.03); g.scale(a, a); shp(rr(-430, -55, 860, 110, 30), CREAM, { sh: 10 }); const fs = fitSize('Küçük vazgeçişler, büyük birikim.', 52, 800); g.font = `800 ${fs}px Baloo`; g.fillStyle = INK; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('Küçük vazgeçişler, büyük birikim.', 0, 4); g.restore(); }
+  if (a > 0) { g.save(); g.translate(540, 1050); g.rotate(-.03); g.scale(a, a); shp(rr(-430, -55, 860, 110, 30), CREAM, { sh: 10 }); const fs = fitSize('Küçük vazgeçişler, büyük birikim.', 52, 800); g.font = `800 ${fs}px Baloo`; g.fillStyle = INK; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('Küçük vazgeçişler, büyük birikim.', 0, 4); g.restore(); }
   const b = back(seg(d, 1.3, 1.6), 2);
-  if (b > 0) { const p = 1 + .04 * R.max(0, R.sin(d * R.PI * 4)); g.save(); g.translate(540, 1420); g.scale(b * p, b * p); shp(rr(-330, -65, 660, 130, 65), K.green, { sh: 12 }); telop("App Store'da İndir", 0, 4, 64, { fill: WHITE }); g.restore(); }
+  if (b > 0) { const p = 1 + .04 * R.max(0, R.sin(d * R.PI * 4)); g.save(); g.translate(540, 1215); g.scale(b * p, b * p); shp(rr(-330, -65, 660, 130, 65), K.green, { sh: 12 }); telop("App Store'da İndir", 0, 4, 64, { fill: WHITE }); g.restore(); }
+  piggy(540, 1720, .75, t, { happy: true });
 }
 
 // ——— ana çizim ———
 await document.fonts.ready;
 await document.fonts.load('800 80px Baloo', 'şğİıçöüŞĞÇÖÜ₺');
-await Promise.all([loadImg('kumbara', 'img/kumbara.png'), loadImg('hedefler', 'img/hedefler.png'), loadImg('sigarasiz', 'img/sigarasiz.png')]);
+await Promise.all([loadImg('hedefler', 'img/hedefler.png'), loadImg('logo', 'img/logo.png')]);
+const ld = (set, i) => new Promise(r => { const im = new Image(); im.onload = () => { REC[set + i] = im; r(); }; im.src = `rec/${set}/${String(i).padStart(4, '0')}.jpg`; });
+const jobs = []; for (let i = 1; i <= 257; i++) jobs.push(ld('a', i)); for (let i = 1; i <= 88; i++) jobs.push(ld('b', i)); await Promise.all(jobs);
 const CUTS = [ST.R1, ST.R2, ST.R3, ST.R4, ST.R5];
 function draw(t) {
   t = Math.min(t, ST.DUR - 1e-4);
